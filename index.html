@@ -1,0 +1,243 @@
+
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Runner Android</title>
+        <meta name="viewport" content="initial-scale=1 maximum-scale=1 user-scalable=0 minimal-ui" />
+        <script src="phaser.2.3.1.virtual-joystick.min.js" type="text/javascript"></script>
+       
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: Arial;
+                font-size: 14px;
+                background-color: #000000;
+                color: #fff;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="phaser-example"></div>
+
+        <script type="text/javascript">
+
+
+    
+
+var game = new Phaser.Game(800, 600, Phaser.AUTO, 'phaser-example');
+
+var PhaserGame = function () {
+
+    this.sprite;
+    this.sky;
+    //this.bullets;
+    //this.bulletTime = 0;
+    this.score = 0;
+    this.scoreText="";
+    //this.testText="";
+    this.platforms;
+    this.ground;
+    this.ledge;
+    this.player;
+    this.stars;
+
+    this.pad;
+    this.sky;
+    this.stick1;
+    //this.maxSpeed = 400;
+
+};
+
+PhaserGame.prototype = {
+
+    init: function () {
+
+        this.game.renderer.renderSession.roundPixels = true;
+        this.physics.startSystem(Phaser.Physics.ARCADE);
+
+    },
+
+    preload: function () {
+        /*
+        this.load.atlas('arcade', 'assets/arcade-joystick.png', 'assets/arcade-joystick.json');
+        
+        this.load.image('ship', 'assets/thrust.png');
+        this.load.image('stars', 'assets/starfield.jpg');
+        this.load.image('bullet', 'assets/bullet2.png');
+        */
+        this.load.atlas('generic', 'assets/arcade-joystick.png', 'assets/arcade-joystick.json');
+        this.load.image('sky', 'assets/sky.png');
+        this.load.image('ground', 'assets/platform.png');
+        this.load.image('star', 'assets/star.png');
+        this.load.spritesheet('dude', 'assets/dude.png', 32, 48);
+
+    },
+
+    create: function () {
+
+        //this.add.tileSprite(0, 0, this.game.width, this.game.height, 'stars');
+        /*
+        this.bullets = this.add.physicsGroup();
+        this.bullets.createMultiple(40, 'bullet');
+        this.bullets.setAll('anchor.x', 0.5);
+        this.bullets.setAll('anchor.y', 0.5);
+        */
+        this.sky = this.add.image(0, 0, 'sky');
+        //this.sprite.anchor.set(0.0);
+
+        this.scoreText = this.add.text(50, 50, 'score: 0', { fontSize: '32px', fill: '#ccc' });
+
+        //this.testText = this.add.text(50, 100, 'pad: ', { fontSize: '32px', fill: '#000' });
+
+        //  The platforms group contains the ground and the 2 ledges we can jump on
+        this.platforms = this.game.add.group();
+        //  We will enable physics for any object that is created in this group
+        //miko - standard er ARCADE type. https://phaser.io/docs/2.3.0/Phaser.Group.html
+        this.platforms.enableBody = true;
+
+        // Here we create the ground.
+        this.ground = this.platforms.create(0, this.game.world.height - 32, 'ground');
+
+        //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
+        this.ground.scale.setTo(2, 1);
+
+        //  This stops it from falling away when you jump on it
+        this.ground.body.immovable = true;
+
+        //  Now let's create two ledges
+        this.ledge = this.platforms.create(400, 350, 'ground');
+
+        this.ledge.body.immovable = true;
+
+        this.ledge = this.platforms.create(-150, 200, 'ground');
+
+        this.ledge.body.immovable = true;
+
+        // The player and its settings
+        this.player = this.add.sprite(32, this.game.world.height - 150, 'dude');
+
+        //  We need to enable physics on the player
+        this.game.physics.arcade.enable(this.player);
+
+        //  Player physics properties. Give the little guy a slight bounce.
+        this.player.body.bounce.y = 0.2;
+        this.player.body.gravity.y = 300;
+        this.player.body.collideWorldBounds = true;
+
+        //  Our two animations, walking left and right.
+        this.player.animations.add('left', [0, 1, 2, 3], 10, true);
+        this.player.animations.add('right', [5, 6, 7, 8], 10, true);
+
+        this.stars = this.game.add.group();
+
+        this.stars.enableBody = true;
+
+        //  Here we'll create 12 of them evenly spaced apart
+        for (var i = 0; i < 12; i++)
+        {
+            //  Create a star inside of the 'stars' group
+            this.star = this.stars.create(Math.random()*600, 0, 'star');
+
+            //  Let gravity do its thing
+            this.star.body.gravity.y = 600;
+
+            //  This just gives each star a slightly random bounce value
+            this.star.body.bounce.y = 0.2 + Math.random() * 0.2;
+        }
+
+
+
+        //this.physics.arcade.enable(this.sprite);
+
+        this.pad = this.game.plugins.add(Phaser.VirtualJoystick);
+
+        this.stick1 = this.pad.addStick(0, 0, 100, 'generic');
+        this.stick1.scale = 0.6;
+        this.stick1.alignBottomLeft(48);
+
+        /*
+        this.stick2 = this.pad.addStick(0, 0, 100, 'arcade');
+        this.stick2.scale = 0.6;
+        this.stick2.alignBottomRight(48);
+        */
+        this.buttonA = this.pad.addButton(0, 0, 'generic', 'button1-up', 'button1-down');
+        this.buttonA.alignBottomRight(48);
+        this.buttonA.onDown.add(this.pressButtonA, this);
+
+    },
+    pressButtonA: function () {
+
+        //jump character
+        //  Allow the player to jump if they are touching the ground.
+        if (this.player.body.touching.down)
+        {
+            this.player.body.velocity.y = -350;
+        }
+        
+
+    },
+    collectStar: function(player, star) {
+
+        // Removes the star from the screen
+        //star.kill();
+        
+        star.destroy();
+        //  Add and update the score
+        this.score += 10;
+        this.scoreText.text = 'Score: ' + this.score;
+        if (this.score >= 120) {
+            //miko sæt timer til at vente f.eks 200 millisekunder.
+            alert("level won: ");   
+        }
+
+    },
+
+    update: function () {
+        
+        this.physics.arcade.collide(this.player, this.platforms);
+        this.physics.arcade.collide(this.stars, this.platforms);
+        
+        this.physics.arcade.overlap(this.player, this.stars, this.collectStar, null, this);
+
+        //  Reset the players velocity (movement)
+        //this.player.body.velocity.x = 0;
+        //Move right left
+        if (this.stick1.isDown) {
+            //this.testText.text = 'Pad: ' + this.stick1.rotation;
+            if ((this.stick1.rotation < 1.0) && (this.stick1.rotation > -0.5 )) {
+                //go right
+                //  Move to the right
+                this.player.body.velocity.x = 150;
+
+                this.player.animations.play('right');
+
+            }else {
+                //go left
+                //  Move to the left
+                this.player.body.velocity.x = -150;
+
+                this.player.animations.play('left');
+
+            }
+            //this.physics.arcade.velocityFromRotation(this.stick1.rotation, this.stick1.force * this.maxSpeed, this.sprite.body.velocity);
+        } else        {
+            //  Stand still
+            this.player.animations.stop();
+
+            this.player.frame = 4;
+            //  Reset the players velocity (movement)
+            this.player.body.velocity.x = 0;
+        }
+        
+    }
+
+};
+
+game.state.add('Game', PhaserGame, true);
+        
+        </script>
+
+    </body>
+</html>
